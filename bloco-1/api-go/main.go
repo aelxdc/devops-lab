@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
+//comentario
 // Em go o bloco "struct" modela os dados (equivalente a classes/objetos)
 // struct tags (json tags)como mapear os campos do Go para as chaves do json
 
@@ -62,6 +64,55 @@ func tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+func taskItemHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	//1. Extrai o {id} da URL e converte de string para int
+	idParam := r.PathValue("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"erro": "ID precisa ser numérico"})
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		// 2. Busca o item pelo ID
+		for _, task := range task {
+			if task.ID == id {
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(task)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"erro": "Tarefa não encontrada"})
+	case http.MethodDelete:
+		// 3. Encontra o indice para remover da slice
+		indice := -1
+		for i, task := range task {
+			if task.ID == id {
+				indice = i
+				break
+			}
+		}
+		if indice == -1 {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"erro": "Tarefa não encontrada"})
+			return
+		}
+		//Remove da slice: junta a parte antes do indice com a parte depois
+		task = append(task[:indice], task[indice+1:]...)
+		// 204 No Content indica sucesso sem corpo de resposta
+		w.WriteHeader(http.StatusNoContent)
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"erro": "Método não permitido"})
+
+	}
+}
 
 // Exemplo
 func healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -72,13 +123,15 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	mux := http.NewServeMux()
 	// Associa o caminho "/" à função healtCheck
-	http.HandleFunc("/health", healthCheck)
-	http.HandleFunc("/tasks", tasksHandler)
+	mux.HandleFunc("/health", healthCheck)
+	mux.HandleFunc("/tasks", tasksHandler)
+	mux.HandleFunc("/tasks/{id}", taskItemHandler)
 	fmt.Println("Servidor rodando em http://localhost:8080")
 
 	// sobe um servidor na porta 8080. Se falhar encerra com log de erro
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		fmt.Printf("Erro ao iniciar servidor: %v\n", err)
 	}
