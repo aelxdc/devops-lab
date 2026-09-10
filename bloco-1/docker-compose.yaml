@@ -5,15 +5,17 @@ services:
       POSTGRES_PASSWORD: $DBPASS
       POSTGRES_USER: $DBUSER
       POSTGRES_DB: $DBDB
-    ports:
-      - 5432:5432
     volumes:
       - postgresapi:/var/lib/postgresql/data
+    restart: always
   api-fastapi:
-    image: api-fastapi:v1
+    image: ghcr.io/aelxdc/devops-lab/api-fastapi:1.3
     environment:
       DATABASE_URL: $DBURL
     ports:
       - 8000:8000
+    restart: always
+    depends_on: 
+      - postgres
 volumes:
   postgresapi:
