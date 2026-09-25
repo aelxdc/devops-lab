@@ -1,5 +1,9 @@
-```markdown
-# E-Commerce Orders API
+
+# DEVOPS Lab
+
+API simples criada para facilitar os estudos DEVOPS
+
+## E-Commerce Orders API
 
 API RESTful desenvolvida com **FastAPI**, **SQLAlchemy** e **PostgreSQL**, estruturada para práticas de DevOps com suporte a fila assíncrona via **Redis** e **RQ Worker**.
 
