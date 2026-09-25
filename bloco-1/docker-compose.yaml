@@ -1,21 +1,53 @@
 services:
   postgres:
     image: postgres:14.24-alpine3.23
+    restart: always
     environment:
-      POSTGRES_PASSWORD: $DBPASS
-      POSTGRES_USER: $DBUSER
       POSTGRES_DB: $DBDB
-    volumes:
-      - postgresapi:/var/lib/postgresql/data
+      POSTGRES_USER: $DBUSER
+      POSTGRES_PASSWORD: $DBPASS
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $DBUSER -d $DBDB"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
     restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    #ports:
+    #  - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   api-fastapi:
-    image: ghcr.io/aelxdc/devops-lab/api-fastapi:1.3
-    environment:
-      DATABASE_URL: $DBURL
-    ports:
-      - 8000:8000
+    image: ghcr.io/aelxdc/devops-lab/api-fastapi:1.4
     restart: always
-    depends_on: 
-      - postgres
-volumes:
-  postgresapi:
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://$DBUSER:$DBPASS@postgres:5432/$DBDB
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Worker que consome tarefas da fila em background
+  worker:
+    image: ghcr.io/aelxdc/devops-lab/api-fastapi:1.4
+    restart: always
+    command: ["rq", "worker", "-u", "redis://redis:6379/0", "orders_queue"]
+    environment:
+      DATABASE_URL: postgresql://$DBUSER:$DBPASS@postgres:5432/$DBDB
+      REDIS_URL: redis://redis:6379/0
+    healthcheck:
+      disable: true
+    depends_on:
+      redis:
+        condition: service_healthy

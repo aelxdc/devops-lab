@@ -4,55 +4,69 @@ from contextlib import asynccontextmanager
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Response, status
+from rq import Queue
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import Base, engine, get_db
+from redis_client import get_redis, redis_client
+from tasks import process_order_task
 
 logger = logging.getLogger("uvicorn")
+orders_queue = Queue("orders_queue", connection=redis_client)
 
 
-def wait_and_init_db(max_retries: int = 10, initial_delay: int = 2):
-    """Aguarda o banco responder com retry exponencial e sincroniza o schema."""
+def wait_and_init_dependencies(max_retries: int = 10, initial_delay: int = 2):
+    """Aguarda o Postgres e o Redis ficarem prontos na subida da aplicação."""
     delay = initial_delay
     for attempt in range(1, max_retries + 1):
+        db_ok, redis_ok = False, False
+
+        # 1. Checa Postgres
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            logger.info("Conexão com o PostgreSQL estabelecida!")
-
-            # Cria as tabelas com a conexão confirmada
             Base.metadata.create_all(bind=engine)
-            logger.info("Tabelas verificadas/criadas com sucesso!")
-            return
+            db_ok = True
         except Exception as err:
             logger.warning(
-                f"Banco indisponível na tentativa {attempt}/{max_retries}: {err}"
+                f"[Tentativa {attempt}/{max_retries}] Postgres indisponível: {err}"
             )
-            if attempt == max_retries:
-                logger.error(
-                    "Não foi possível conectar ao banco após todas as tentativas. "
-                    "A API continuará inicializando, mas requisições ao banco falharão."
-                )
-                return
-            time.sleep(delay)
-            delay = min(delay * 2, 10)
+
+        # 2. Checa Redis
+        try:
+            redis_client.ping()
+            redis_ok = True
+        except Exception as err:
+            logger.warning(
+                f"[Tentativa {attempt}/{max_retries}] Redis indisponível: {err}"
+            )
+
+        if db_ok and redis_ok:
+            logger.info("PostgreSQL e Redis conectados e operacionais!")
+            return
+
+        if attempt == max_retries:
+            logger.error("Falha ao inicializar conexões com Postgres ou Redis.")
+            return
+
+        time.sleep(delay)
+        delay = min(delay * 2, 10)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: tenta conectar e criar tabelas sem crashar o processo
-    wait_and_init_db()
+    wait_and_init_dependencies()
     yield
-    # Shutdown: fecha pools e conexões pendentes graciosamente
     engine.dispose()
+    redis_client.close()
 
 
 app = FastAPI(
     title="E-Commerce Orders API",
-    description="API comercial para gestão de clientes e pedidos, estruturada para labs DevOps",
+    description="API de pedidos com Postgres e fila de processamento assíncrono via Redis",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -60,17 +74,32 @@ app = FastAPI(
 
 @app.get("/health", tags=["Health"])
 def health_check(db: Session = Depends(get_db)):
-    """Valida a saúde do container e testa a conexão real com o banco."""
+    """Valida a saúde de todos os serviços essenciais (PostgreSQL + Redis)."""
+    status_report = {"postgres": "disconnected", "redis": "disconnected"}
+    healthy = True
+
     try:
         db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
+        status_report["postgres"] = "connected"
     except Exception as err:
-        logger.warning(f"Healthcheck falhou: {err}")
+        logger.warning(f"Healthcheck Postgres falhou: {err}")
+        healthy = False
+
+    try:
+        redis_client.ping()
+        status_report["redis"] = "connected"
+    except Exception as err:
+        logger.warning(f"Healthcheck Redis falhou: {err}")
+        healthy = False
+
+    if not healthy:
         return Response(
-            content='{"status": "unhealthy", "database": "disconnected"}',
+            content=f'{{"status": "unhealthy", "services": {status_report}}}',
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             media_type="application/json",
         )
+
+    return {"status": "healthy", "services": status_report}
 
 
 # --- Endpoints: Customers ---
@@ -128,7 +157,9 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
     tags=["Orders"],
 )
+
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
+    # 1. Valida se o cliente existe
     customer = (
         db.query(models.Customer)
         .filter(models.Customer.id == order.customer_id)
@@ -140,10 +171,81 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
             detail="Cliente não encontrado para vincular o pedido",
         )
 
+    # 2. Cria o objeto no banco
     new_order = models.Order(**order.model_dump())
     db.add(new_order)
     db.commit()
     db.refresh(new_order)
+
+    # 3. Notifica a fila assíncrona do Redis
+    try:
+        r = get_redis_client()
+        payload = {
+            "event": "ORDER_CREATED",
+            "order_id": new_order.id,
+            "customer_id": new_order.customer_id,
+        }
+        r.rpush(ORDER_QUEUE_NAME, json.dumps(payload))
+        logger.info(f"Evento do pedido {new_order.id} enviado para o Redis.")
+    except Exception as err:
+        logger.warning(f"Falha ao enfileirar no Redis (não bloqueante): {err}")
+
+    # 4. OBRIGATÓRIO: Retornar a instância do pedido criado
+    return new_order
+
+    new_order = models.Order(**order.model_dump())
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+# --- Endpoint: Atualizar Status do Pedido ---
+@app.patch(
+    "/orders/{order_id}/status",
+    response_model=schemas.OrderResponse,
+    tags=["Orders"],
+)
+def update_order_status(
+    order_id: int,
+    status_data: schemas.OrderUpdateStatus,
+    db: Session = Depends(get_db),
+):
+    # 1. Busca o pedido existente
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    # 2. Atualiza o status
+    order.status = status_data.status.value
+    db.commit()
+    db.refresh(order)
+
+    # 3. (Opcional) Publica evento de atualização na fila do Redis
+    try:
+        r = get_redis_client()
+        event_payload = {
+            "event": "ORDER_STATUS_UPDATED",
+            "order_id": order.id,
+            "new_status": order.status,
+        }
+        r.rpush("queue:order_events", json.dumps(event_payload))
+    except Exception as err:
+        logger.warning(
+            f"Não foi possível enviar evento de status para o Redis: {err}"
+        )
+
+    return order
+
+    # Enfileira o processamento assíncrono no Redis sem travar a requisição HTTP
+    try:
+        orders_queue.enqueue(
+            process_order_task,
+            order_id=new_order.id,
+            customer_id=new_order.customer_id,
+        )
+    except Exception as err:
+        logger.error(f"Erro ao despachar tarefa para a fila do Redis: {err}")
+        # A requisição não precisa falhar caso a fila esteja indisponível
+
     return new_order
 
 
