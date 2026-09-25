@@ -59,8 +59,8 @@ Documentação interativa Swagger: `http://localhost:8000/docs`
 * **Exemplo de Corpo (JSON):**
 ```json
 {
-  "name": "Maria Silva",
-  "email": "maria.silva@exemplo.com",
+  "name": "Maria 2",
+  "email": "Maria2@example.com",
   "status": "active"
 }
 
@@ -71,7 +71,7 @@ Documentação interativa Swagger: `http://localhost:8000/docs`
 
 #### 2. Listar Clientes
 
-* **Método:** `GET /customers/?skip=0&limit=100`
+* **Método:** `GET /customers/`
 * **Retorno:** `200 OK` (Array com a lista de clientes cadastrados).
 
 #### 3. Obter Detalhes de um Cliente
@@ -90,9 +90,10 @@ Documentação interativa Swagger: `http://localhost:8000/docs`
 * **Exemplo de Corpo (JSON):**
 ```json
 {
-  "customer_id": 1,
-  "description": "Teclado Mecânico e Mousepad",
-  "total_amount": 250.50
+  "description": "conector",
+  "total_amount": 52,
+  "status": "pendente",
+  "customer_id": 2
 }
 
 ```
@@ -102,7 +103,7 @@ Documentação interativa Swagger: `http://localhost:8000/docs`
 
 #### 2. Listar Pedidos
 
-* **Método:** `GET /orders/?skip=0&limit=100`
+* **Método:** `GET /orders/`
 * **Retorno:** `200 OK` (Array com os pedidos).
 
 #### 3. Editar Status do Pedido
