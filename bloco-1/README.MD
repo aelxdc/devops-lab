@@ -1,5 +1,3 @@
-Aqui está um modelo de `README.md` simples, direto e pronto para documentar a sua API:
-
 ```markdown
 # E-Commerce Orders API
 
@@ -117,7 +115,3 @@ Documentação interativa Swagger: `http://localhost:8000/docs`
 
 
 * **Retorno:** `200 OK` (Objeto do pedido atualizado).
-
-```
-
-```
