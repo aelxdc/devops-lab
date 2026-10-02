@@ -47,10 +47,6 @@ resource "aws_instance" "example" {
   }
 }
 
-output "ips_publicos" {
-  description = "Lista dos IPs das instâncias criadas"
-  value = aws_instance.example[*].public_ip  
-}
 
 #CRIAR UM BUCKET S3
 #
