@@ -1,9 +1,17 @@
 # Configure the AWS Provider
 provider "aws" {
   region = var.region
-  profile = var.profile
+  #profile = var.profile
 }
 
+## o bloco abaixo faz com que o tfstate vá para um bucket na aws, e não fique localmente
+terraform {
+  backend "s3" {
+    bucket = "bucket-thinkpad-console"
+    key = "terraform-aws.tfstate"
+    region = "us-east-1"
+  }
+}
 ### Criar uma instancia ec2, usando a vpc acima
 
 #USAR O CODIGO ABAIXO CASO NÃO SOUBERMOS O AMI-ID
@@ -46,6 +54,7 @@ resource "aws_instance" "example" {
     Name = "InstanciaCriada-Terraform-${count.index + 1}"  
   }
 }
+
 
 
 #CRIAR UM BUCKET S3
