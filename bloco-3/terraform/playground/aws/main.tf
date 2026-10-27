@@ -15,25 +15,25 @@ terraform {
 ### Criar uma instancia ec2, usando a vpc acima
 
 #USAR O CODIGO ABAIXO CASO NÃO SOUBERMOS O AMI-ID
-#data "aws_ami" "ubuntu" {
-#  most_recent = true
-#
-#  filter {
-#    name   = "name"
-#    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-20260604*"]
-#  }
-#
-#  filter {
-#    name   = "virtualization-type"
-#    values = ["hvm"]
-#  }
-#
-#  owners = ["099720109477"] # Canonical
-#}
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
 
 resource "aws_instance" "example" {
-  #ami           = data.aws_ami.ubuntu.id  #aqui se quiser pegar o id da ami encontrada no bloco anterior
-  ami           = "ami-0b6d9d3d33ba97d99"
+  ami           = data.aws_ami.ubuntu.id  #aqui se quiser pegar o id da ami encontrada no bloco anterior
+  #ami           = "ami-0b6d9d3d33ba97d99"
   instance_type = "t3.micro"
   count = 2
   #subnet_id = aws_subnet.subnet_app.id
