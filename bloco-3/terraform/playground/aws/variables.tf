@@ -29,3 +29,16 @@ variable "tags" {
     }
   
 }
+
+
+variable "image_id" {
+  default = "ami-0b6d9d3d33ba97d99"
+  type = string
+  description = "ID da imagem AMI a ser usada no deploy"
+  
+
+validation {
+    condition     = lenght(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "ID AMI fora do padrão, favor verificar"
+  }
+}
