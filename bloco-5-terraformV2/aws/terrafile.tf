@@ -1,7 +1,17 @@
 module "modules" {
   source = "./modules"
   servers = 2
-  
+  providers = {
+    aws = aws.use1
+  }
+}
+
+module "modules2" {
+  source = "./modules"
+  servers = 2
+  providers = {
+    aws = aws.use2
+  }
 }
 
 output "ips_publicos" {

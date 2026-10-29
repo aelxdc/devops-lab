@@ -1,4 +1,8 @@
 # Cria uma VPC
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 resource "aws_vpc" "vpc_app" {
   cidr_block = "10.0.8.0/24"
   tags = var.tags
@@ -32,7 +36,7 @@ resource "aws_route_table_association" "public_assoc_2" {
 resource "aws_subnet" "subnet_app" {
   vpc_id            = aws_vpc.vpc_app.id
   cidr_block        = "10.0.8.0/25" # Precisa caber dentro do CIDR da VPC
-  availability_zone = "${var.region}a"
+  availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = var.tags
 }
@@ -40,7 +44,7 @@ resource "aws_subnet" "subnet_app" {
 resource "aws_subnet" "subnet_app2" {
   vpc_id            = aws_vpc.vpc_app.id
   cidr_block        = "10.0.8.128/25" # Precisa caber dentro do CIDR da VPC
-  availability_zone = "${var.region}b"
+  availability_zone = data.aws_availability_zones.available.names[1]
 
   tags = var.tags
 }
