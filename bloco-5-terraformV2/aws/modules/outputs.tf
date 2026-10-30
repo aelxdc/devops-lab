@@ -1,6 +1,6 @@
 output "ips_publicos" {
   description = "Lista dos IPs das instâncias criadas"
-  value = aws_instance.example[*].public_ip  
+  value = aws_instance.ec2create[*].public_ip  
 }
 
 output "alb_dns_name" {

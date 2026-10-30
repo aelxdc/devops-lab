@@ -30,7 +30,10 @@ variable "tags" {
   
 }
 
-variable "servers" {
+variable "servers" { 
+}
+
+variable "name_instance" {
   
 }
 

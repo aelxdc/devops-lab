@@ -16,9 +16,8 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "aws_instance" "example" {
+resource "aws_instance" "ec2create" {
   ami           = data.aws_ami.ubuntu.id  #aqui se quiser pegar o id da ami encontrada no bloco anterior
-  #ami           = "ami-0b6d9d3d33ba97d99"
   instance_type = "t3.micro"
   count = var.servers
   #subnet_id = aws_subnet.subnet_app.id
@@ -32,11 +31,11 @@ resource "aws_instance" "example" {
               apt-get install -y nginx
               systemctl start nginx
               systemctl enable nginx
-              echo "<h1>Instancia ${count.index + 1} - online via Terraform!</h1>" > /var/www/html/index.html
+              echo "<h1>Instancia - ${var.name_instance} - ${count.index + 1} - online via Terraform!</h1>" > /var/www/html/index.html
               EOF
 
   tags = {
-    Name = "InstanciaCriada-Terraform-${count.index + 1}"  
+    Name = "${var.name_instance}-Terraform-${count.index + 1}"  
   }
 }
 

@@ -27,9 +27,9 @@ resource "aws_lb_target_group" "app_target" {
 }
 
 resource "aws_lb_target_group_attachment" "instance_app" {
-  count            = length(aws_instance.example)
+  count            = length(aws_instance.ec2create)
   target_group_arn = aws_lb_target_group.app_target.arn
-  target_id        = aws_instance.example[count.index].id
+  target_id        = aws_instance.ec2create[count.index].id
   port             = 80
 }
 

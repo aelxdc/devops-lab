@@ -1,6 +1,7 @@
 module "modules" {
   source = "./modules"
   servers = 2
+  name_instance = "App1"
   providers = {
     aws = aws.use1
   }
@@ -9,6 +10,7 @@ module "modules" {
 module "modules2" {
   source = "./modules"
   servers = 2
+  name_instance = "App2"
   providers = {
     aws = aws.use2
   }
