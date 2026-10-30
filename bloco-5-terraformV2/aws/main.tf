@@ -17,5 +17,6 @@ terraform {
     bucket = "bucket-thinkpad-console"
     key = "terraform-aws.tfstate"
     region = "us-east-1"
+    use_lockfile = true ##habilita o lockstate do tfstate
   }
 }
