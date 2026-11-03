@@ -14,6 +14,12 @@ variable "servers" {
   default     = 2
 }
 
+variable "instance" {
+  type        = string
+  description = "Tipo da instância"
+  default     = "t3.micro"
+}
+
 variable "name_instance" {
   type        = string
   description = "Nome base da aplicacao/instancias"

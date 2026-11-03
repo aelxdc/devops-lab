@@ -22,6 +22,7 @@ module "app_cluster" {
   vpc_id        = module.vpc.vpc_id
   subnets       = module.vpc.public_subnets
   servers       = 3 # Maior disponibilidade em prd
+  instance      = "t3.small"
   name_instance = "api-prd"
 
   tags = {

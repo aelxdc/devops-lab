@@ -16,7 +16,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "ec2create" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.micro"
+  instance_type               = var.instance
   count                       = var.servers
   subnet_id                   = element(var.subnets, count.index)
   key_name                    = "alex-key"

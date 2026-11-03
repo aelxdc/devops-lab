@@ -17,12 +17,13 @@ module "vpc" {
   }
 }
 
-# 2. Seu módulo próprio consumido localmente
+#Módulo consumido localmente
 module "app_cluster" {
   source = "../../modules/app_cluster"
 
   vpc_id        = module.vpc.vpc_id
   subnets       = module.vpc.public_subnets
+  instance      = "t3.micro"
   servers       = 2
   name_instance = "api-dev"
 }
