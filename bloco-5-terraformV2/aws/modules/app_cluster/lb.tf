@@ -1,21 +1,18 @@
 resource "aws_lb" "app_lb" {
-    name = "app-lb"
-    internal = false
-    load_balancer_type = "application"
-    security_groups = [aws_security_group.security_group_web-ssh.id]
-    subnets = [
-        aws_subnet.subnet_app.id,
-        aws_subnet.subnet_app2.id
-    ]
+  name               = "${var.name_instance}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.security_group_web_ssh.id]
+  subnets            = var.subnets
 }
 
 resource "aws_lb_target_group" "app_target" {
-    name = "app-target"
-    port = 80
-    protocol = "HTTP"
-    vpc_id = aws_vpc.vpc_app.id
-    
-    health_check {
+  name     = "${var.name_instance}-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
     path                = "/"
     protocol            = "HTTP"
     matcher             = "200"
@@ -43,4 +40,3 @@ resource "aws_lb_listener" "web_listener" {
     target_group_arn = aws_lb_target_group.app_target.arn
   }
 }
-
