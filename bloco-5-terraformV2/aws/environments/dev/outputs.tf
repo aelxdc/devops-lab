@@ -1,4 +1,4 @@
-# Output consumido do SEU módulo próprio
+# Output consumido do módulo próprio
 output "app_url" {
   description = "URL de acesso à aplicação via ALB"
   value       = "http://${module.app_cluster.alb_dns_name}"

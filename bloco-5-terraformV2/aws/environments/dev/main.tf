@@ -1,6 +1,6 @@
 
 
-# 1. Módulo oficial consumido do Registry (atende requisito)
+#Módulo oficial consumido do Registry
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
