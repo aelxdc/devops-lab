@@ -14,17 +14,17 @@
 ##que pode ter sido criado diretamente no console da aws, para o terraform e passa a ser
 ##controlado por ele
 #Bloco de importação
-import {
-  to = aws_security_group.sg_legado
-  id = "sg-0abc12345def67890" # ID do recurso existente na AWS
-}
+#import {
+#  to = aws_security_group.sg_legado
+#  id = "sg-0abc12345def67890" # ID do recurso existente na AWS
+#}
 
 #Definição do recurso correspondente no código
-resource "aws_security_group" "sg_legado" {
-  name        = "security-group-manual"
-  description = "SG criado via console AWS incorporado ao Terraform"
-  vpc_id      = module.vpc.vpc_id
-}
+#resource "aws_security_group" "sg_legado" {
+#  name        = "security-group-manual"
+#  description = "SG criado via console AWS incorporado ao Terraform"
+#  vpc_id      = module.vpc.vpc_id
+#}
 
 #Módulo oficial consumido do Registry
 module "vpc" {
