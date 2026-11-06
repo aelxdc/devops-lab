@@ -18,9 +18,10 @@ resource "aws_instance" "ec2create" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance
   count                       = var.servers
+  monitoring                  = true
   subnet_id                   = element(var.subnets, count.index)
   key_name                    = "alex-key"
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.security_group_web_ssh.id]
 
   user_data = <<-EOF
